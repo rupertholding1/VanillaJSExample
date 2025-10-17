@@ -26,16 +26,20 @@
     .small { font-size:12px; }
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <h1>Payments API Explorer</h1>
-    <p class="note small">Minimal demo: build a request → send with <code>fetch</code> → inspect URL, headers and JSON response.<br>Now includes pre-request and test script examples (Postman-style).</p>
+    <p class="note small">
+      Minimal demo: build a request → send with <code>fetch</code> → inspect URL, headers and JSON response.<br>
+      Includes pre-request and test script examples (Postman-style).
+    </p>
 
     <div class="split">
       <!-- Request -->
       <div class="card">
         <label>Base URL</label>
-        <input id="baseUrl" value="https://reqres.in/api/users" />
+        <input id="baseUrl" value="https://jsonplaceholder.typicode.com/posts" />
 
         <div class="grid">
           <div>
@@ -62,7 +66,7 @@
           </div>
           <div>
             <label>Payment ID (for GET)</label>
-            <input id="paymentId" value="2" />
+            <input id="paymentId" value="1" />
           </div>
         </div>
 
@@ -99,92 +103,136 @@
       </div>
     </div>
 
-    <p class="note small" style="margin-top:20px">No keys stored. Pure client-side. Works directly from GitHub Pages.</p>
+    <p class="note small" style="margin-top:20px">
+      No keys stored. Pure client-side. Works directly from GitHub Pages.
+    </p>
+
+    <!-- Logic Sandbox -->
+    <h2 style="margin-top:40px;font-size:16px">Logic Sandbox: The “Swapped” Example</h2>
+    <p style="color:#6b7280;font-size:13px">
+      A simple bubble-sort loop showing variable state and control flow (as discussed in the interview).
+    </p>
+    <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px">
+      <button id="runSwap" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;cursor:pointer;">Run Example</button>
+      <pre id="swapOut" style="background:#f8fafc;border:1px solid #eee;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">—</pre>
+    </div>
   </div>
 
- <script>
-  const $ = (id) => document.getElementById(id);
-  const els = {
-    baseUrl: $('baseUrl'), op: $('operation'), auth: $('auth'),
-    amount: $('amount'), currency: $('currency'), paymentId: $('paymentId'),
-    body: $('body'), copyCurl: $('copyCurl'), send: $('send'),
-    status: $('status'), dur: $('dur'), url: $('url'), reqHeaders: $('reqHeaders'), resp: $('resp')
-  };
-
-  // Use JSONPlaceholder for POST/GET (always open, CORS-friendly)
-  function buildUrl() {
-    const base = 'https://jsonplaceholder.typicode.com';
-    if (els.op.value === 'get') return `${base}/posts/${els.paymentId.value || 1}`;
-    return `${base}/posts`; // POST
-  }
-
-  function buildMethod() { return els.op.value === 'get' ? 'GET' : 'POST'; }
-
-  // Simple payload that JSONPlaceholder accepts; it returns 201 Created
-  function buildPayload() {
-    if (els.op.value === 'get') return undefined;
-    return {
-      title: "Payments API Explorer",
-      body: `amount=${Number(els.amount.value || 0)}&currency=${(els.currency.value||'GBP').toUpperCase()}`,
-      userId: 1
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const els = {
+      baseUrl: $('baseUrl'), op: $('operation'), auth: $('auth'), amount: $('amount'),
+      currency: $('currency'), paymentId: $('paymentId'), body: $('body'),
+      copyCurl: $('copyCurl'), send: $('send'), status: $('status'),
+      dur: $('dur'), url: $('url'), reqHeaders: $('reqHeaders'), resp: $('resp')
     };
-  }
 
-  // “Pre-request” example (like Postman)
-  function preRequestScript(payload) {
-    if (!payload) return payload;
-    payload.sent_at = new Date().toISOString();
-    return payload;
-  }
-
-  // “Tests” example (like Postman)
-  function runTests(json, status) {
-    const ok = status === 201 || status === 200;
-    console.log('[Tests]', { status, ok, hasId: !!json.id });
-  }
-
-  async function sendRequest() {
-    const url = buildUrl();
-    const method = buildMethod();
-    const headers = { 'Content-Type': 'application/json' };
-    const payload = buildPayload();
-    const processed = payload ? preRequestScript(payload) : undefined;
-
-    const init = { method, headers };
-    if (processed) init.body = JSON.stringify(processed);
-
-    const t0 = performance.now();
-    try {
-      const res = await fetch(url, init);
-      const t1 = performance.now();
-
-      els.status.value = res.status + ' ' + res.statusText;
-      els.dur.value = Math.round(t1 - t0);
-      const data = await res.json();
-
-      els.url.textContent = url;
-      els.reqHeaders.textContent = JSON.stringify(headers, null, 2);
-      els.resp.textContent = JSON.stringify(data, null, 2);
-
-      runTests(data, res.status);
-    } catch (e) {
-      els.status.value = 'Network error';
-      els.resp.textContent = e.message;
+    // API Explorer Core
+    function buildUrl() {
+      const base = 'https://jsonplaceholder.typicode.com';
+      if (els.op.value === 'get') return `${base}/posts/${els.paymentId.value || 1}`;
+      return `${base}/posts`;
     }
-  }
 
-  // UI wiring
-  els.send.addEventListener('click', sendRequest);
-  ['change','keyup'].forEach(evt => {
-    ['operation','auth','amount','currency','paymentId'].forEach(id =>
-      els[id].addEventListener(evt, () => {
-        const p = buildPayload();
-        els.body.value = p ? JSON.stringify(p, null, 2) : '— (GET request)';
-      })
-    );
-  });
+    function buildMethod() { return els.op.value === 'get' ? 'GET' : 'POST'; }
 
-  // Initial preview
-  els.body.value = JSON.stringify(buildPayload() || {}, null, 2);
-</script>
+    function buildPayload() {
+      if (els.op.value === 'get') return undefined;
+      return {
+        title: "Payments API Explorer",
+        body: `amount=${Number(els.amount.value || 0)}&currency=${(els.currency.value||'GBP').toUpperCase()}`,
+        userId: 1
+      };
+    }
 
+    function preRequestScript(payload) {
+      if (!payload) return payload;
+      payload.sent_at = new Date().toISOString();
+      console.log('[Pre-request]', payload);
+      return payload;
+    }
+
+    function runTests(json, status) {
+      const ok = status === 201 || status === 200;
+      console.log('[Tests]', { status, ok, hasId: !!json.id, response: json });
+    }
+
+    async function sendRequest() {
+      const url = buildUrl();
+      const method = buildMethod();
+      const headers = { 'Content-Type': 'application/json' };
+      if (els.auth.value) headers['Authorization'] = 'Bearer ' + els.auth.value.trim();
+      const payload = buildPayload();
+      const processed = payload ? preRequestScript(payload) : undefined;
+
+      const init = { method, headers };
+      if (processed) init.body = JSON.stringify(processed);
+
+      const t0 = performance.now();
+      try {
+        const res = await fetch(url, init);
+        const t1 = performance.now();
+        els.status.value = res.status + ' ' + res.statusText;
+        els.dur.value = Math.round(t1 - t0);
+        const data = await res.json();
+        els.url.textContent = url;
+        els.reqHeaders.textContent = JSON.stringify(headers, null, 2);
+        els.resp.textContent = JSON.stringify(data, null, 2);
+        runTests(data, res.status);
+      } catch (e) {
+        els.status.value = 'Network error';
+        els.resp.textContent = e.message;
+      }
+    }
+
+    els.send.addEventListener('click', sendRequest);
+    ['change','keyup'].forEach(evt => {
+      ['operation','auth','amount','currency','paymentId'].forEach(id =>
+        els[id].addEventListener(evt, () => {
+          const p = buildPayload();
+          els.body.value = p ? JSON.stringify(p, null, 2) : '— (GET request)';
+        })
+      );
+    });
+
+    els.copyCurl.addEventListener('click', async () => {
+      const method = buildMethod();
+      const url = buildUrl();
+      const headers = { 'Content-Type': 'application/json' };
+      if (els.auth.value) headers['Authorization'] = 'Bearer ' + els.auth.value.trim();
+      const payload = buildPayload();
+      const curl = [
+        'curl', '-X', method, `'${url}'`,
+        '-H', `'Content-Type: application/json'`,
+        ...(headers.Authorization ? ['-H', `'Authorization: ${headers.Authorization}'`] : []),
+        ...(payload ? ['-d', `'${JSON.stringify(payload).replace(/'/g, "'\\''")}'`] : [])
+      ].join(' ');
+      try { await navigator.clipboard.writeText(curl); alert('Copied cURL to clipboard'); } catch {}
+    });
+
+    // Initial render
+    els.body.value = JSON.stringify(buildPayload(), null, 2);
+
+    // Swapped Example Sandbox
+    document.getElementById('runSwap').addEventListener('click', () => {
+      let numbers = [5, 3, 8, 1, 4];
+      let swapped;
+      const log = [];
+      do {
+        swapped = false;
+        for (let i = 0; i < numbers.length - 1; i++) {
+          if (numbers[i] > numbers[i + 1]) {
+            let temp = numbers[i];
+            numbers[i] = numbers[i + 1];
+            numbers[i + 1] = temp;
+            swapped = true;
+          }
+        }
+        log.push('Pass: ' + numbers.join(', '));
+      } while (swapped);
+      log.push('Sorted: ' + numbers.join(', '));
+      document.getElementById('swapOut').textContent = log.join('\\n');
+    });
+  </script>
+</body>
+</html>
