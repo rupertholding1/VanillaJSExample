@@ -70,7 +70,7 @@
           </div>
         </div>
 
-        <label>Request Body (auto)</label>
+        <label>Request Body (readonly)</label>
         <textarea id="body" readonly></textarea>
 
         <div class="btns">
@@ -104,19 +104,10 @@
     </div>
 
     <p class="note small" style="margin-top:20px">
-      No keys stored. Pure client-side. Works directly from GitHub Pages.
+      Client side only no keys stored, works from git pages.
     </p>
 
-    <!-- Logic Sandbox -->
-    <h2 style="margin-top:40px;font-size:16px">Logic Sandbox: The “Swapped” Example</h2>
-    <p style="color:#6b7280;font-size:13px">
-      A simple bubble-sort loop showing variable state and control flow (as discussed in the interview).
-    </p>
-    <div style="border:1px solid #e5e7eb;border-radius:8px;padding:12px">
-      <button id="runSwap" style="padding:8px 14px;border:1px solid #ccc;border-radius:6px;cursor:pointer;">Run Example</button>
-      <pre id="swapOut" style="background:#f8fafc;border:1px solid #eee;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">—</pre>
-    </div>
-  </div>
+  
 
   <script>
     const $ = (id) => document.getElementById(id);
@@ -213,26 +204,7 @@
     // Initial render
     els.body.value = JSON.stringify(buildPayload(), null, 2);
 
-    // Swapped Example Sandbox
-    document.getElementById('runSwap').addEventListener('click', () => {
-      let numbers = [5, 3, 8, 1, 4];
-      let swapped;
-      const log = [];
-      do {
-        swapped = false;
-        for (let i = 0; i < numbers.length - 1; i++) {
-          if (numbers[i] > numbers[i + 1]) {
-            let temp = numbers[i];
-            numbers[i] = numbers[i + 1];
-            numbers[i + 1] = temp;
-            swapped = true;
-          }
-        }
-        log.push('Pass: ' + numbers.join(', '));
-      } while (swapped);
-      log.push('Sorted: ' + numbers.join(', '));
-      document.getElementById('swapOut').textContent = log.join('\\n');
-    });
+   
   </script>
 </body>
 </html>
