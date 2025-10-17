@@ -102,105 +102,89 @@
     <p class="note small" style="margin-top:20px">No keys stored. Pure client-side. Works directly from GitHub Pages.</p>
   </div>
 
-  <script>
-    const $ = (id) => document.getElementById(id);
-    const els = {
-      baseUrl: $('baseUrl'), op: $('operation'), auth: $('auth'), amount: $('amount'), currency: $('currency'),
-      paymentId: $('paymentId'), body: $('body'), copyCurl: $('copyCurl'), send: $('send'),
-      status: $('status'), dur: $('dur'), url: $('url'), reqHeaders: $('reqHeaders'), resp: $('resp')
+ <script>
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    baseUrl: $('baseUrl'), op: $('operation'), auth: $('auth'),
+    amount: $('amount'), currency: $('currency'), paymentId: $('paymentId'),
+    body: $('body'), copyCurl: $('copyCurl'), send: $('send'),
+    status: $('status'), dur: $('dur'), url: $('url'), reqHeaders: $('reqHeaders'), resp: $('resp')
+  };
+
+  // Use JSONPlaceholder for POST/GET (always open, CORS-friendly)
+  function buildUrl() {
+    const base = 'https://jsonplaceholder.typicode.com';
+    if (els.op.value === 'get') return `${base}/posts/${els.paymentId.value || 1}`;
+    return `${base}/posts`; // POST
+  }
+
+  function buildMethod() { return els.op.value === 'get' ? 'GET' : 'POST'; }
+
+  // Simple payload that JSONPlaceholder accepts; it returns 201 Created
+  function buildPayload() {
+    if (els.op.value === 'get') return undefined;
+    return {
+      title: "Payments API Explorer",
+      body: `amount=${Number(els.amount.value || 0)}&currency=${(els.currency.value||'GBP').toUpperCase()}`,
+      userId: 1
     };
+  }
 
-    // Build request details
-    function buildUrl() {
-      const base = 'https://reqres.in/api/users';
-      if (els.op.value === 'get') return `${base}/${els.paymentId.value || 2}`;
-      return base;
+  // “Pre-request” example (like Postman)
+  function preRequestScript(payload) {
+    if (!payload) return payload;
+    payload.sent_at = new Date().toISOString();
+    return payload;
+  }
+
+  // “Tests” example (like Postman)
+  function runTests(json, status) {
+    const ok = status === 201 || status === 200;
+    console.log('[Tests]', { status, ok, hasId: !!json.id });
+  }
+
+  async function sendRequest() {
+    const url = buildUrl();
+    const method = buildMethod();
+    const headers = { 'Content-Type': 'application/json' };
+    const payload = buildPayload();
+    const processed = payload ? preRequestScript(payload) : undefined;
+
+    const init = { method, headers };
+    if (processed) init.body = JSON.stringify(processed);
+
+    const t0 = performance.now();
+    try {
+      const res = await fetch(url, init);
+      const t1 = performance.now();
+
+      els.status.value = res.status + ' ' + res.statusText;
+      els.dur.value = Math.round(t1 - t0);
+      const data = await res.json();
+
+      els.url.textContent = url;
+      els.reqHeaders.textContent = JSON.stringify(headers, null, 2);
+      els.resp.textContent = JSON.stringify(data, null, 2);
+
+      runTests(data, res.status);
+    } catch (e) {
+      els.status.value = 'Network error';
+      els.resp.textContent = e.message;
     }
-    function buildMethod() { return els.op.value === 'get' ? 'GET' : 'POST'; }
-    function buildPayload() {
-      if (els.op.value === 'get') return undefined;
-      return {
-        name: "Rupert",
-        job: "Solutions Engineer",
-        amount: Number(els.amount.value || 0),
-        currency: (els.currency.value || 'GBP').toUpperCase()
-      };
-    }
+  }
 
-    // Pre-request script 
-    function preRequestScript(payload) {
-      payload.sent_at = new Date().toISOString();
-      console.log('[Pre-request]', payload);
-      return payload;
-    }
+  // UI wiring
+  els.send.addEventListener('click', sendRequest);
+  ['change','keyup'].forEach(evt => {
+    ['operation','auth','amount','currency','paymentId'].forEach(id =>
+      els[id].addEventListener(evt, () => {
+        const p = buildPayload();
+        els.body.value = p ? JSON.stringify(p, null, 2) : '— (GET request)';
+      })
+    );
+  });
 
-    //Test script 
-    function runTests(response, status) {
-      const passed = status === 201 || status === 200;
-      console.log('[Test Results]', {
-        status,
-        passed,
-        hasId: !!response.id,
-        response
-      });
-    }
+  // Initial preview
+  els.body.value = JSON.stringify(buildPayload() || {}, null, 2);
+</script>
 
-    async function sendRequest() {
-      const url = buildUrl();
-      const method = buildMethod();
-      const headers = { 'Content-Type': 'application/json' };
-      if (els.auth.value) headers['Authorization'] = 'Bearer ' + els.auth.value.trim();
-      const payload = buildPayload();
-      const processedPayload = payload ? preRequestScript(payload) : undefined;
-
-      const init = { method, headers };
-      if (processedPayload) init.body = JSON.stringify(processedPayload);
-
-      const t0 = performance.now();
-      try {
-        const res = await fetch(url, init);
-        const t1 = performance.now();
-
-        els.status.value = res.status + ' ' + res.statusText;
-        els.dur.value = Math.round(t1 - t0);
-        const data = await res.json();
-
-        els.url.textContent = url;
-        els.reqHeaders.textContent = JSON.stringify(headers, null, 2);
-        els.resp.textContent = JSON.stringify(data, null, 2);
-
-        runTests(data, res.status); // simulate Postman test tab
-      } catch (e) {
-        els.status.value = 'Network error';
-        els.resp.textContent = e.message;
-      }
-    }
-
-    els.send.addEventListener('click', sendRequest);
-    ['change','keyup'].forEach(evt => {
-      ['operation','auth','amount','currency','paymentId'].forEach(id => els[id].addEventListener(evt, () => {
-        const payload = buildPayload();
-        els.body.value = payload ? JSON.stringify(payload, null, 2) : '— (GET request)';
-      }));
-    });
-
-    els.copyCurl.addEventListener('click', async () => {
-      const method = buildMethod();
-      const url = buildUrl();
-      const headers = { 'Content-Type': 'application/json' };
-      if (els.auth.value) headers['Authorization'] = 'Bearer ' + els.auth.value.trim();
-      const payload = buildPayload();
-      const curl = [
-        'curl', '-X', method, `'${url}'`,
-        '-H', `'Content-Type: application/json'`,
-        ...(headers.Authorization ? ['-H', `'Authorization: ${headers.Authorization}'`] : []),
-        ...(payload ? ['-d', `'${JSON.stringify(payload).replace(/'/g, "'\\''")}'`] : [])
-      ].join(' ');
-      try { await navigator.clipboard.writeText(curl); alert('Copied cURL to clipboard'); } catch {}
-    });
-
-    // initial render
-    els.body.value = JSON.stringify(buildPayload(), null, 2);
-  </script>
-</body>
-</html>
