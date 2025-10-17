@@ -23,28 +23,26 @@
     pre { margin:0; background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:12px; overflow:auto;
           font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; }
     .split { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-    .mt24 { margin-top:24px; }
     .small { font-size:12px; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <h1>Payments API Explorer</h1>
-    <p class="note small">Minimal demo: build a request → send with <code>fetch</code> → inspect URL, headers and JSON response. Swap Base URL to a Postman mock or sandbox.</p>
+    <p class="note small">Minimal demo: build a request → send with <code>fetch</code> → inspect URL, headers and JSON response.<br>Now includes pre-request and test script examples (Postman-style).</p>
 
     <div class="split">
       <!-- Request -->
       <div class="card">
         <label>Base URL</label>
-        <input id="baseUrl" value="https://reqres.in" />
+        <input id="baseUrl" value="https://reqres.in/api/users" />
 
         <div class="grid">
           <div>
             <label>Operation</label>
-            <select id="op">
+            <select id="operation">
               <option value="create">Create (POST)</option>
               <option value="get">Get (GET)</option>
-              <option value="refund">Refund (POST)</option>
             </select>
           </div>
           <div>
@@ -56,14 +54,14 @@
         <div class="row">
           <div>
             <label>Amount</label>
-            <input id="amount" type="number" value="1999" />
+            <input id="amount" type="number" value="1994" />
           </div>
           <div>
             <label>Currency</label>
             <input id="currency" value="GBP" />
           </div>
           <div>
-            <label>Payment ID (for Get/Refund)</label>
+            <label>Payment ID (for GET)</label>
             <input id="paymentId" value="2" />
           </div>
         </div>
@@ -101,60 +99,89 @@
       </div>
     </div>
 
-    <!-- Logic Sandbox -->
-    <h1 class="mt24">Logic Sandbox</h1>
-    <p class="note small">Bubble sort with a <code>swapped</code> flag and <code>do…while</code> loop (like in the interview):</p>
-    <div class="card">
-      <label>Numbers</label>
-      <input id="nums" value="5, 3, 8, 1, 4" />
-      <div class="btns"><button id="runLogic">Run Example</button></div>
-      <label>Console Output</label>
-      <pre id="logicOut">—</pre>
-    </div>
-
-    <p class="note small mt24">No keys stored. Pure client-side. Suitable for GitHub Pages.</p>
+    <p class="note small" style="margin-top:20px">No keys stored. Pure client-side. Works directly from GitHub Pages.</p>
   </div>
 
   <script>
     const $ = (id) => document.getElementById(id);
     const els = {
-      baseUrl: $('baseUrl'), op: $('op'), auth: $('auth'), amount: $('amount'), currency: $('currency'),
+      baseUrl: $('baseUrl'), op: $('operation'), auth: $('auth'), amount: $('amount'), currency: $('currency'),
       paymentId: $('paymentId'), body: $('body'), copyCurl: $('copyCurl'), send: $('send'),
-      status: $('status'), dur: $('dur'), url: $('url'), reqHeaders: $('reqHeaders'), resp: $('resp'),
-      nums: $('nums'), runLogic: $('runLogic'), logicOut: $('logicOut')
+      status: $('status'), dur: $('dur'), url: $('url'), reqHeaders: $('reqHeaders'), resp: $('resp')
     };
 
+    // Build request details
     function buildUrl() {
-      const base = (els.baseUrl.value || '').replace(/\/$/, '');
-      if (els.op.value === 'create') return base + '/api/users';
-      if (els.op.value === 'get') return base + '/api/users/' + (els.paymentId.value || '2');
-      if (els.op.value === 'refund') return base + '/api/users';
+      const base = 'https://reqres.in/api/users';
+      if (els.op.value === 'get') return `${base}/${els.paymentId.value || 2}`;
       return base;
     }
     function buildMethod() { return els.op.value === 'get' ? 'GET' : 'POST'; }
     function buildPayload() {
       if (els.op.value === 'get') return undefined;
-      if (els.op.value === 'refund') return { payment_id: els.paymentId.value || '2', reason: 'customer_request' };
-      return { amount: Number(els.amount.value || 0), currency: (els.currency.value || 'GBP').toUpperCase(), method: 'card' };
+      return {
+        name: "Rupert",
+        job: "Solutions Engineer",
+        amount: Number(els.amount.value || 0),
+        currency: (els.currency.value || 'GBP').toUpperCase()
+      };
     }
 
-    function updatePreview() {
+    // Pre-request script 
+    function preRequestScript(payload) {
+      payload.sent_at = new Date().toISOString();
+      console.log('[Pre-request]', payload);
+      return payload;
+    }
+
+    //Test script 
+    function runTests(response, status) {
+      const passed = status === 201 || status === 200;
+      console.log('[Test Results]', {
+        status,
+        passed,
+        hasId: !!response.id,
+        response
+      });
+    }
+
+    async function sendRequest() {
       const url = buildUrl();
+      const method = buildMethod();
       const headers = { 'Content-Type': 'application/json' };
       if (els.auth.value) headers['Authorization'] = 'Bearer ' + els.auth.value.trim();
       const payload = buildPayload();
+      const processedPayload = payload ? preRequestScript(payload) : undefined;
 
-      els.body.value = payload ? JSON.stringify(payload, null, 2) : '— (GET request)';
-      els.url.textContent = url;
-      els.reqHeaders.textContent = JSON.stringify(headers, null, 2);
-      els.status.value = '—';
-      els.dur.value = '—';
-      els.resp.textContent = '—';
+      const init = { method, headers };
+      if (processedPayload) init.body = JSON.stringify(processedPayload);
+
+      const t0 = performance.now();
+      try {
+        const res = await fetch(url, init);
+        const t1 = performance.now();
+
+        els.status.value = res.status + ' ' + res.statusText;
+        els.dur.value = Math.round(t1 - t0);
+        const data = await res.json();
+
+        els.url.textContent = url;
+        els.reqHeaders.textContent = JSON.stringify(headers, null, 2);
+        els.resp.textContent = JSON.stringify(data, null, 2);
+
+        runTests(data, res.status); // simulate Postman test tab
+      } catch (e) {
+        els.status.value = 'Network error';
+        els.resp.textContent = e.message;
+      }
     }
+
+    els.send.addEventListener('click', sendRequest);
     ['change','keyup'].forEach(evt => {
-      ['baseUrl','op','auth','amount','currency','paymentId'].forEach(id =>
-        els[id].addEventListener(evt, updatePreview)
-      );
+      ['operation','auth','amount','currency','paymentId'].forEach(id => els[id].addEventListener(evt, () => {
+        const payload = buildPayload();
+        els.body.value = payload ? JSON.stringify(payload, null, 2) : '— (GET request)';
+      }));
     });
 
     els.copyCurl.addEventListener('click', async () => {
@@ -169,57 +196,11 @@
         ...(headers.Authorization ? ['-H', `'Authorization: ${headers.Authorization}'`] : []),
         ...(payload ? ['-d', `'${JSON.stringify(payload).replace(/'/g, "'\\''")}'`] : [])
       ].join(' ');
-      try { await navigator.clipboard.writeText(curl); } catch {}
+      try { await navigator.clipboard.writeText(curl); alert('Copied cURL to clipboard'); } catch {}
     });
 
-    els.send.addEventListener('click', async () => {
-      const method = buildMethod();
-      const url = buildUrl();
-      const headers = { 'Content-Type': 'application/json' };
-      if (els.auth.value) headers['Authorization'] = 'Bearer ' + els.auth.value.trim();
-      const init = { method, headers };
-      const payload = buildPayload();
-      if (payload) init.body = JSON.stringify(payload);
-
-      const t0 = performance.now();
-      try {
-        const res = await fetch(url, init);
-        const t1 = performance.now();
-        els.status.value = res.status + ' ' + res.statusText;
-        els.dur.value = Math.round(t1 - t0);
-        const txt = await res.text();
-        try { els.resp.textContent = JSON.stringify(JSON.parse(txt), null, 2); }
-        catch { els.resp.textContent = txt; }
-      } catch (e) {
-        els.status.value = 'Network error';
-        els.resp.textContent = e.message;
-      }
-    });
-
-    // Logic Sandbox — bubble sort with swapped flag
-    function bubbleSortTrace(list) {
-      const a = list.slice();
-      const logs = [];
-      let swapped;
-      do {
-        swapped = false;
-        for (let i = 0; i < a.length - 1; i++) {
-          if (a[i] > a[i+1]) {
-            const t = a[i]; a[i] = a[i+1]; a[i+1] = t;
-            swapped = true;
-          }
-        }
-        logs.push('Pass: ' + JSON.stringify(a));
-      } while (swapped);
-      logs.push('Sorted: ' + JSON.stringify(a));
-      return logs.join('\n');
-    }
-    els.runLogic.addEventListener('click', () => {
-      const nums = els.nums.value.split(/[,\s]+/).filter(Boolean).map(Number);
-      els.logicOut.textContent = bubbleSortTrace(nums);
-    });
-
-    updatePreview();
+    // initial render
+    els.body.value = JSON.stringify(buildPayload(), null, 2);
   </script>
 </body>
 </html>
